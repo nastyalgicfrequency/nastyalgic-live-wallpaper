@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NF — 90s Boom Bap Loop v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#150d08;
+    --bg-warm:#2c1810;
+    --gold:#d4a24e;
+    --brick:#c1443c;
+    --cream:#f2e2c4;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:radial-gradient(ellipse at 30% 20%, var(--bg-warm) 0%, var(--bg-deep) 65%);
+    overflow:hidden;
+    font-family:'Bungee', sans-serif;
+  }
+  .layer{ position:fixed; inset:0; pointer-events:none; }
+
+  /* film grain */
+  #grain{ position:fixed; inset:0; width:100%; height:100%; opacity:.06; mix-blend-mode:overlay; }
+
+  /* vignette */
+  .vignette{ background:radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.65) 100%); }
+
+  /* scanlines */
+  .scanlines{
+    background:repeating-linear-gradient(
+      to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.18) 3px, rgba(0,0,0,0) 4px
+    );
+    animation:scanFlicker 6s ease-in-out infinite;
+  }
+  @keyframes scanFlicker{ 0%,100%{opacity:.5;} 50%{opacity:.3;} }
+
+  /* faint diagonal wordmark texture */
+  .wordmark{
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%) rotate(-8deg);
+    font-size:clamp(6rem, 16vw, 13rem);
+    letter-spacing:.05em;
+    color:rgba(242,226,196,.045);
+    white-space:nowrap;
+    user-select:none;
+  }
+
+  /* vinyl record, bottom-right */
+  .vinyl{
+    position:fixed; right:6%; bottom:8%;
+    width:min(22vw, 260px); height:min(22vw, 260px);
+  }
+  .record{
+    width:100%; height:100%; border-radius:50%;
+    background:
+      repeating-radial-gradient(circle at center,
+        #0c0805 0px, #0c0805 4px,
+        #1a120b 5px, #1a120b 9px);
+    box-shadow:0 0 40px rgba(0,0,0,.5), 0 0 0 2px rgba(212,162,78,.15);
+    animation:spin 9s linear infinite;
+    will-change:transform;
+    position:relative;
+  }
+  .record::before{
+    content:''; position:absolute; inset:38%;
+    border-radius:50%;
+    background:radial-gradient(circle at 40% 35%, var(--gold), var(--brick) 70%);
+    box-shadow:inset 0 0 10px rgba(0,0,0,.4);
+  }
+  .record::after{
+    content:''; position:absolute; inset:47%;
+    border-radius:50%; background:var(--bg-deep);
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .tonearm{
+    position:absolute; top:-6%; right:-10%;
+    width:45%; height:6px; border-radius:4px;
+    background:linear-gradient(90deg, var(--cream), rgba(242,226,196,.3));
+    transform:rotate(28deg); transform-origin:right center;
+    box-shadow:0 0 6px rgba(0,0,0,.4);
+  }
+
+  /* equalizer, bottom-left */
+  .eq{
+    position:fixed; left:6%; bottom:8%;
+    display:flex; align-items:flex-end; gap:6px; height:80px;
+  }
+  .eq span{
+    width:9px; border-radius:2px 2px 0 0;
+    background:linear-gradient(to top, var(--brick), var(--gold));
+    height:20%;
+    transition:height .32s ease;
+    box-shadow:0 0 8px rgba(212,162,78,.25);
+  }
+
+  /* occasional vhs tracking glitch */
+  .glitch{
+    position:fixed; left:0; width:100%; height:14%;
+    top:-20%; opacity:0;
+    background:linear-gradient(to bottom, transparent, rgba(212,162,78,.06), rgba(193,68,60,.08), transparent);
+    filter:blur(1px);
+  }
+  .glitch.active{ animation:glitchSweep 1.3s ease-in-out; }
+  @keyframes glitchSweep{
+    0%{ top:-20%; opacity:0; }
+    12%{ opacity:.6; }
+    88%{ opacity:.6; }
+    100%{ top:110%; opacity:0; }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .record{ animation-duration:40s; }
+    .scanlines{ animation:none; opacity:.4; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="grain" class="layer"></canvas>
+  <div class="scanlines layer"></div>
+  <div class="vignette layer"></div>
+  <div class="wordmark">NASTYALGIC FREQUENCY</div>
+
+  <div class="vinyl">
+    <div class="record"></div>
+    <div class="tonearm"></div>
+  </div>
+
+  <div class="eq" id="eq"></div>
+
+  <div class="glitch layer" id="glitch"></div>
+
+<script>
+  // build equalizer bars
+  const eq = document.getElementById('eq');
+  const barCount = 7;
+  for (let i = 0; i < barCount; i++){
+    const s = document.createElement('span');
+    eq.appendChild(s);
+  }
+  const bars = eq.querySelectorAll('span');
+  function pulseBars(){
+    bars.forEach(b => { b.style.height = (14 + Math.random()*70) + '%'; });
+  }
+  pulseBars();
+  setInterval(pulseBars, 380);
+
+  // low-cost film grain, redrawn on a small canvas then stretched via CSS
+  const canvas = document.getElementById('grain');
+  const ctx = canvas.getContext('2d');
+  const GRAIN_W = 160, GRAIN_H = 100;
+  canvas.width = GRAIN_W; canvas.height = GRAIN_H;
+  canvas.style.width = '100%'; canvas.style.height = '100%';
+  function drawGrain(){
+    const imgData = ctx.createImageData(GRAIN_W, GRAIN_H);
+    for (let i = 0; i < imgData.data.length; i += 4){
+      const v = Math.random() * 255;
+      imgData.data[i] = v; imgData.data[i+1] = v; imgData.data[i+2] = v;
+      imgData.data[i+3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+  drawGrain();
+  setInterval(drawGrain, 140);
+
+  // occasional vhs tracking glitch sweep
+  const glitch = document.getElementById('glitch');
+  function triggerGlitch(){
+    glitch.classList.add('active');
+    setTimeout(() => glitch.classList.remove('active'), 1300);
+  }
+  setInterval(triggerGlitch, 16000 + Math.random()*8000);
+</script>
+</body>
+</html>
